@@ -1,7 +1,6 @@
 package com.sh.shvideolibrary;
 
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
@@ -29,7 +28,6 @@ import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
-
 /**
  * Created by zhush on 2016/11/11
  * E-mail zhush@jerei.com
@@ -39,26 +37,23 @@ import java.util.TimerTask;
 public class VideoInputDialog extends DialogFragment {
 
     private static final String TAG = "VideoInputDialog";
+    public static int Q480 = CamcorderProfile.QUALITY_480P;
+    public static int Q720 = CamcorderProfile.QUALITY_720P;
+    public static int Q1080 = CamcorderProfile.QUALITY_1080P;
+    public static int Q21600 = CamcorderProfile.QUALITY_2160P;
+    private final int MAX_TIME = 1500;
+    Context mContext;
     private Camera mCamera;
     private CameraPreview mPreview;
-    private ProgressBar mProgressRight,mProgressLeft;
+    private ProgressBar mProgressRight, mProgressLeft;
     private MediaRecorder mMediaRecorder;
     private Timer mTimer;
-    private final int MAX_TIME = 1500;
     private int mTimeCount;
     private long time;
     private boolean isRecording = false;
     private String fileName;
     private VideoCall videoCall;
-
-    public static int Q480 = CamcorderProfile.QUALITY_480P;
-    public static int Q720 = CamcorderProfile.QUALITY_720P;
-    public static int Q1080 = CamcorderProfile.QUALITY_1080P;
-    public static int Q21600 = CamcorderProfile.QUALITY_2160P;
-    private int quality =CamcorderProfile.QUALITY_480P;
-
-    Context mContext;
-
+    private int quality = CamcorderProfile.QUALITY_480P;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
     private Runnable updateProgress = new Runnable() {
         @Override
@@ -74,17 +69,42 @@ public class VideoInputDialog extends DialogFragment {
         }
     };
 
-    public void setVideoCall(VideoCall videoCall) {
-        this.videoCall = videoCall;
-    }
-
-    public static VideoInputDialog newInstance(VideoCall videoCall,int quality,Context context) {
+    public static VideoInputDialog newInstance(VideoCall videoCall, int quality, Context context) {
         VideoInputDialog dialog = new VideoInputDialog();
         dialog.setVideoCall(videoCall);
         dialog.setQuality(quality);
         dialog.setmContext(context);
         dialog.setStyle(DialogFragment.STYLE_NORMAL, R.style.maskDialog);
         return dialog;
+    }
+
+    /**
+     * @param ft
+     * @param videoCall 录制视频回调
+     * @param quality   分辨率
+     * @param context
+     */
+    public static void show(FragmentManager ft, VideoCall videoCall, int quality, Context context) {
+
+        DialogFragment newFragment = VideoInputDialog.newInstance(videoCall, quality, context);
+        newFragment.show(ft, "VideoInputDialog");
+    }
+
+    /**
+     * A safe way to get an instance of the Camera object.
+     */
+    private static Camera getCameraInstance() {
+        Camera c = null;
+        try {
+            c = Camera.open();
+        } catch (Exception e) {
+            // Camera is not available (in use or does not exist)
+        }
+        return c; // returns null if camera is unavailable
+    }
+
+    public void setVideoCall(VideoCall videoCall) {
+        this.videoCall = videoCall;
     }
 
     @Override
@@ -122,7 +142,7 @@ public class VideoInputDialog extends DialogFragment {
                                             mainHandler.post(sendVideo);
                                         }
                                     }
-                                    }, 0, 10);
+                                }, 0, 10);
                             } else {
                                 releaseMediaRecorder();
                             }
@@ -151,10 +171,10 @@ public class VideoInputDialog extends DialogFragment {
     /**
      * 停止录制
      */
-    private void recordStop(){
+    private void recordStop() {
         if (isRecording) {
             isRecording = false;
-            if (isLongEnough()){
+            if (isLongEnough()) {
                 mMediaRecorder.stop();
             }
             releaseMediaRecorder();
@@ -166,61 +186,34 @@ public class VideoInputDialog extends DialogFragment {
         }
     }
 
-
-    /**
-     *
-     * @param ft
-     * @param videoCall  录制视频回调
-     * @param quality 分辨率
-     * @param context
-     */
-    public static void show(FragmentManager ft,VideoCall videoCall,int quality,Context context){
-
-        DialogFragment newFragment = VideoInputDialog.newInstance(videoCall,quality, context);
-        newFragment.show(ft, "VideoInputDialog");
-    }
-
-
-
-    /** A safe way to get an instance of the Camera object. */
-    private static Camera getCameraInstance(){
-        Camera c = null;
-        try {
-            c = Camera.open();
-        }
-        catch (Exception e){
-            // Camera is not available (in use or does not exist)
-        }
-        return c; // returns null if camera is unavailable
-    }
-
-
-
-    private void releaseMediaRecorder(){
+    private void releaseMediaRecorder() {
         if (mMediaRecorder != null) {
             mMediaRecorder.reset();   // clear recorder configuration
             mMediaRecorder.release(); // release the recorder object
             mMediaRecorder = null;
             mCamera.lock();           // lock camera for later use
-            if (isLongEnough()){
+            if (isLongEnough()) {
                 videoCall.videoPathCall(fileName);
-            }else{
+            } else {
                 Toast.makeText(getContext(), getString(R.string.chat_video_too_short), Toast.LENGTH_SHORT).show();
             }
             dismiss();
         }
     }
 
-    private void releaseCamera(){
-        if (mCamera != null){
+    private void releaseCamera() {
+        if (mCamera != null) {
             mCamera.release();        // release the camera for other applications
             mCamera = null;
         }
     }
-    //初始化 mMediaRecorder 用于录像
-    private boolean prepareVideoRecorder(){
 
-        if (mCamera==null) return false;
+    //初始化 mMediaRecorder 用于录像
+    private boolean prepareVideoRecorder() {
+
+        if (mCamera == null) {
+            return false;
+        }
         mMediaRecorder = new MediaRecorder();
         mCamera.unlock();
         mMediaRecorder.setCamera(mCamera);
@@ -228,13 +221,37 @@ public class VideoInputDialog extends DialogFragment {
         mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
         //视频
         mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+//        //设置分辨率为480P
+//        mMediaRecorder.setProfile(CamcorderProfile.get(quality));
+//        //路径
+//        mMediaRecorder.setOutputFile(getOutputMediaFile().toString());
+//        mMediaRecorder.setPreviewDisplay(mPreview.getHolder().getSurface());
+
+
         //设置分辨率为480P
-        mMediaRecorder.setProfile(CamcorderProfile.get(quality));
+//        CamcorderProfile camcorderProfile = CamcorderProfile.get(quality);
+//        mMediaRecorder.setProfile(camcorderProfile);
+
+        mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+        //获取手机摄像头支持的帧率
+
+        int frameRate = CamcorderProfile.get(CamcorderProfile.QUALITY_LOW).videoFrameRate;
+        mMediaRecorder.setVideoFrameRate(frameRate);
+        //宽高比,只影响视频的长宽比例,对视频大小几乎无影响,由于华为手机有虚拟按键,使用16:9时虚拟按键区域也是视频播放区域
+        //并且虚拟按键不会消失,有虚拟按键当着显得不好看,所以还是采用4:3的比例,但播放时上下区域会有黑边
+        mMediaRecorder.setVideoSize(640, 480);
+//        mMediaRecorder.setVideoSize(1280,720);
+
+        // 视频压缩比特率,决定视频文件的大小,如果不设置为 5000000,  1024 * 1024 = 1048576
+        mMediaRecorder.setVideoEncodingBitRate(1024 * 1024);
+
         //路径
-        mMediaRecorder.setOutputFile(getOutputMediaFile().toString());
         mMediaRecorder.setPreviewDisplay(mPreview.getHolder().getSurface());
+        mMediaRecorder.setOutputFile(getOutputMediaFile().getAbsolutePath());
 
-
+        /*=============================================*/
         try {
             //旋转90度 保持竖屏
             mMediaRecorder.setOrientationHint(90);
@@ -251,39 +268,30 @@ public class VideoInputDialog extends DialogFragment {
         return true;
     }
 
-
-
-    /** Create a File for saving an image or video */
-    private File getOutputMediaFile(){
+    /**
+     * Create a File for saving an image or video
+     */
+    private File getOutputMediaFile() {
 
 //        return  new File(getContext().getExternalCacheDir().getAbsolutePath() + "/" + fileName);
 //        PackageManager pm = mContext.getPackageManager();
-        String appName =      mContext. getPackageName();
+        String appName = mContext.getPackageName();
         File dir = new File(Environment.getExternalStorageDirectory() + "/" + appName);
-        if (!dir.exists()){
+        if (!dir.exists()) {
             dir.mkdir();
         }
-         fileName = dir+ "/video_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".mp4";
-        Log.i("filePath",fileName);
-        return  new File(fileName);
+        fileName = dir + "/video_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".mp4";
+        Log.i("filePath", fileName);
+        return new File(fileName);
     }
 
     /**
      * 判断录制时间
+     *
      * @return
      */
-    private boolean isLongEnough(){
+    private boolean isLongEnough() {
         return Calendar.getInstance().getTimeInMillis() - time > 3000;
-    }
-
-    /**
-     * Created by zhush on 2016/11/11
-     * E-mail zhush@jerei.com
-     * PS  录制视频回调
-     */
-
-    public static interface VideoCall{
-        public void videoPathCall(String path);
     }
 
     public void setQuality(int quality) {
@@ -292,5 +300,16 @@ public class VideoInputDialog extends DialogFragment {
 
     public void setmContext(Context mContext) {
         this.mContext = mContext;
+    }
+
+    /**
+     * Created by zhush on 2016/11/11
+     * E-mail zhush@jerei.com
+     * PS  录制视频回调
+     */
+
+    public interface VideoCall {
+
+        void videoPathCall(String path);
     }
 }

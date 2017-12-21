@@ -229,12 +229,12 @@ public class VideoInputDialog extends DialogFragment {
 
 
         //设置分辨率为480P
-//        CamcorderProfile camcorderProfile = CamcorderProfile.get(quality);
-//        mMediaRecorder.setProfile(camcorderProfile);
+        CamcorderProfile camcorderProfile = CamcorderProfile.get(quality);
+        mMediaRecorder.setProfile(camcorderProfile);
 
-        mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+//        mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+//        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+//        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
         //获取手机摄像头支持的帧率
 
         int frameRate = CamcorderProfile.get(CamcorderProfile.QUALITY_LOW).videoFrameRate;
@@ -244,7 +244,7 @@ public class VideoInputDialog extends DialogFragment {
         mMediaRecorder.setVideoSize(640, 480);
 //        mMediaRecorder.setVideoSize(1280,720);
 
-        // 视频压缩比特率,决定视频文件的大小,如果不设置为 5000000,  1024 * 1024 = 1048576
+        // 视频压缩比特率,决定视频文件的大小和质量,如果不设置为 5000000,  1024 * 1024 = 1048576
         mMediaRecorder.setVideoEncodingBitRate(1024 * 1024);
 
         //路径
